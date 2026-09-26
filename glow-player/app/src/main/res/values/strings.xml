@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Glow Player</string>
+
+    <!-- Quick Settings tile -->
+    <string name="tile_label">Glow Player</string>
+    <string name="tile_subtitle_idle">Tap to play</string>
+    <string name="state_playing">Playing</string>
+    <string name="state_paused">Paused</string>
+
+    <!-- Media notification / quick panel player -->
+    <string name="notification_channel_name">Now playing</string>
+    <string name="action_shuffle_on">Turn shuffle on</string>
+    <string name="action_shuffle_off">Turn shuffle off</string>
+    <string name="action_repeat_off">Repeat off</string>
+    <string name="action_repeat_all">Repeat all</string>
+    <string name="action_repeat_one">Repeat one</string>
+
+    <!-- Player -->
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
+    <string name="action_shuffle">Shuffle</string>
+    <string name="action_repeat">Repeat</string>
+    <string name="nothing_playing">Nothing playing</string>
+    <string name="pick_a_song">Pick a song below</string>
+    <string name="up_next">Up next · %1$s</string>
+    <string name="unknown_artist">Unknown artist</string>
+    <string name="unknown_album">Unknown album</string>
+
+    <!-- Adding the tile -->
+    <string name="add_tile">Add to quick panel</string>
+    <string name="add_tile_added">Added to the quick panel</string>
+    <string name="add_tile_already">Already in the quick panel</string>
+    <string name="add_tile_help_title">Add Glow Player to the quick panel</string>
+    <string name="add_tile_help_body">1. Swipe down twice to open the quick panel.\n2. Tap the ✎ (edit) button.\n3. Drag the \"Glow Player\" tile into the panel.\n\nWhile music plays, the song also appears in the quick panel media player.</string>
+    <string name="ok">OK</string>
+
+    <!-- Library -->
+    <string name="library_title">My music</string>
+    <string name="song_count">%1$d songs</string>
+    <string name="library_loading">Loading your music…</string>
+    <string name="library_empty">No music files found on this phone.</string>
+    <string name="permission_title">Allow access to your music</string>
+    <string name="permission_body">Glow Player plays the audio files stored on this phone.</string>
+    <string name="permission_button">Allow</string>
+    <string name="permission_settings">Open settings</string>
+</resources>
