@@ -1,0 +1,1550 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>전국 새총</title>
+<meta name="description" content="새총을 쏘면 대한민국 읍면동 어딘가에 맞고, 그곳까지 바로 길안내를 시작합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root {
+  --sea: #a8cbd4;
+  --sea-halo: #c4dee4;
+  --land: #eef0e0;
+  --neighbor: #d6dacb;
+  --ink: #1e2f37;
+  --ink-soft: #4b5d64;
+  --line: rgba(30, 47, 55, 0.5);
+  --hit: #ffd60a;
+  --hit-ink: #1e2f37;
+  --accent: #d7263d;
+  --stone: #6c746f;
+  --wood: #a8733f;
+  --wood-dark: #6b431f;
+  --band: #7a2e1e;
+  --panel: #fbfbf6;
+  --panel-line: #d5dacd;
+  --panel-shadow: 0 -12px 40px rgba(20, 44, 52, 0.2);
+  --mark-top: 52%;
+  --mark-bottom: 92%;
+  --font-display: "Bagel Fat One", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #0f2a33;
+    --sea-halo: #173f4a;
+    --land: #27332f;
+    --neighbor: #1b2523;
+    --ink: #e3ebe7;
+    --ink-soft: #a9b8b3;
+    --line: rgba(227, 235, 231, 0.42);
+    --accent: #ff5d50;
+    --stone: #b3bcb6;
+    --wood: #c38a52;
+    --wood-dark: #7d522a;
+    --band: #d0654a;
+    --panel: #172327;
+    --panel-line: #2f3f43;
+    --panel-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+    --mark-top: 0%;
+    --mark-bottom: 100%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sea: #0f2a33;
+  --sea-halo: #173f4a;
+  --land: #27332f;
+  --neighbor: #1b2523;
+  --ink: #e3ebe7;
+  --ink-soft: #a9b8b3;
+  --line: rgba(227, 235, 231, 0.42);
+  --accent: #ff5d50;
+  --stone: #b3bcb6;
+  --wood: #c38a52;
+  --wood-dark: #7d522a;
+  --band: #d0654a;
+  --panel: #172327;
+  --panel-line: #2f3f43;
+  --panel-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  --mark-top: 0%;
+  --mark-bottom: 100%;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--sea);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas { position: fixed; inset: 0; display: block; }
+#fx { touch-action: none; cursor: grab; }
+body[data-mode="aiming"] #fx { cursor: grabbing; }
+body[data-mode="result"] #fx { cursor: move; }
+body[data-mode="flying"] #fx, body[data-mode="impact"] #fx, body[data-mode="loading"] #fx { cursor: default; }
+
+.bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+  pointer-events: none;
+}
+.brand {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-shadow: 0 0 2px var(--land), 0 0 8px var(--land);
+}
+.tally {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--panel-line);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.tally b { font-weight: 600; }
+
+.dock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+body[data-mode="result"] .dock,
+body[data-mode="impact"] .dock { opacity: 0; visibility: hidden; }
+.hint {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.random {
+  pointer-events: auto;
+  font: 500 0.9375rem/1 var(--font-ui);
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 8px 10px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.random:disabled { opacity: 0.45; cursor: default; }
+.credit {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 44ch;
+}
+
+.status {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding-inline: 24px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink);
+  pointer-events: none;
+}
+.status p { margin: 0; max-width: 34ch; }
+.status code { font-size: 0.9em; background: var(--panel); padding: 1px 6px; border-radius: 4px; }
+
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  max-width: 520px;
+  margin-inline: auto;
+  display: grid;
+  gap: 16px;
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 22px 22px 0 0;
+  box-shadow: var(--panel-shadow);
+  transform: translateY(0);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+}
+.sheet[data-state="closed"] {
+  transform: translateY(calc(100% + 32px));
+  visibility: hidden;
+  transition: transform 0.35s ease-in, visibility 0s linear 0.35s;
+}
+@media (min-width: 760px) {
+  .sheet {
+    left: 16px; right: auto; bottom: 16px;
+    width: 380px;
+    margin: 0;
+    padding-bottom: 20px;
+    border-radius: 22px;
+    box-shadow: 0 16px 48px rgba(20, 44, 52, 0.22);
+  }
+}
+.where { display: grid; gap: 4px; }
+.upper {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.emd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 9vw, 2.875rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.emd mark {
+  background: linear-gradient(transparent var(--mark-top), var(--hit) var(--mark-top), var(--hit) var(--mark-bottom), transparent var(--mark-bottom));
+  color: var(--hit-ink);
+  padding-inline: 4px;
+  border-radius: 4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.facts div { display: grid; gap: 2px; min-width: 0; }
+.facts dt { font-size: 0.75rem; line-height: 1.4; color: var(--ink-soft); }
+.facts dd { margin: 0; font-weight: 500; font-size: 0.9375rem; line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.apps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-line) 45%, transparent);
+}
+.apps button {
+  font: 500 0.9375rem/1 var(--font-ui);
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 4px;
+  cursor: pointer;
+}
+.apps button[aria-checked="true"] {
+  background: var(--panel);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(20, 44, 52, 0.18);
+}
+.go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  border-radius: 16px;
+  background: var(--hit);
+  color: var(--hit-ink);
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-decoration: none;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+}
+.go:active { transform: translateY(1px); box-shadow: none; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.actions button {
+  font: 500 0.9375rem/1 var(--font-ui);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--panel-line);
+  border-radius: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.actions .again { border-color: var(--ink); font-weight: 600; }
+.note {
+  margin: -6px 0 0;
+  min-height: 1.4em;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.note:empty { display: none; }
+
+[hidden] { display: none !important; }
+button:focus-visible, a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet[data-state="closed"], .dock { transition: none; }
+}
+</style>
+</head>
+<body data-mode="loading">
+<canvas id="map" aria-hidden="true"></canvas>
+<canvas id="fx" role="img" aria-label="대한민국 지도와 새총. 화면을 아래로 당겼다 놓으면 새총이 발사됩니다."></canvas>
+
+<header class="bar" id="bar">
+  <h1 class="brand">전국 새총</h1>
+  <p class="tally" aria-live="polite"><b id="shot-count">0</b>발 쐈어요</p>
+</header>
+
+<div class="dock" id="dock">
+  <p class="hint" id="hint">고무줄을 아래로 당겼다가 놓으세요</p>
+  <button type="button" class="random" id="btn-random" disabled>아무 데나 쏘기</button>
+  <p class="credit">행정동 경계: 통계청 SGIS, vuski/admdongkor (2026.7 기준)</p>
+</div>
+
+<div class="status" id="status" role="status"><p id="status-text">지도를 펼치는 중이에요</p></div>
+
+<p class="sr-only" id="sr-announce" aria-live="polite"></p>
+
+<section class="sheet" id="sheet" data-state="closed" aria-labelledby="r-emd" inert>
+  <div class="where">
+    <p class="upper" id="r-upper"></p>
+    <h2 class="emd" id="r-emd"><mark id="r-emd-name"></mark></h2>
+  </div>
+  <dl class="facts">
+    <div><dt>맞은 곳 좌표</dt><dd id="r-coord"></dd></div>
+    <div><dt>행정기관코드</dt><dd id="r-code"></dd></div>
+  </dl>
+  <div class="apps" role="radiogroup" aria-label="길안내에 쓸 앱">
+    <button type="button" role="radio" id="app-kakao" data-app="kakao" aria-checked="true">카카오맵</button>
+    <button type="button" role="radio" id="app-naver" data-app="naver" aria-checked="false">네이버 지도</button>
+    <button type="button" role="radio" id="app-tmap" data-app="tmap" aria-checked="false">T맵</button>
+  </div>
+  <a class="go" id="btn-go" href="https://map.kakao.com/" target="_blank" rel="noopener">지도로 안내하기</a>
+  <div class="actions">
+    <button type="button" class="again" id="btn-again">다시 쏘기</button>
+    <button type="button" class="copy" id="btn-copy">주소 복사</button>
+  </div>
+  <p class="note" id="r-note" role="status"></p>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const DATA_URL = 'data/korea.topo.json';
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage unavailable */ }
+    },
+  };
+
+  const UA = navigator.userAgent;
+  const IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const IS_ANDROID = /Android/i.test(UA);
+  const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+  const APP_NAME = /^https?:$/.test(location.protocol) ? location.origin : 'korea-slingshot';
+
+  const mapCanvas = $('map');
+  const fxCanvas = $('fx');
+  const mctx = mapCanvas.getContext('2d');
+  const fctx = fxCanvas.getContext('2d');
+
+  const S = {
+    mode: 'loading',
+    W: 0, H: 0, dpr: 1,
+    view: { k: 1, x: 0, y: 0 },
+    home: null,
+    homeRect: null,
+    sling: null,
+    maxRange: 300,
+    pull: null,
+    pouch: null,
+    stone: null,
+    ripples: [],
+    current: null,
+    animating: false,
+    app: ['kakao', 'naver', 'tmap'].includes(store.get('ks.app', 'kakao')) ? store.get('ks.app', 'kakao') : 'kakao',
+    shots: Number(store.get('ks.shots', 0)) || 0,
+    hits: Array.isArray(store.get('ks.hits', [])) ? store.get('ks.hits', []) : [],
+    colors: {},
+  };
+
+  // ---------- geometry ----------
+  // Transverse Mercator centred on 127.5°E (the UTM-K meridian); world units are kilometres.
+  let proj = null;
+  let topo = null;
+  let feats = [];
+  let landPath = null;
+  let neighborPath = null;
+  let landBounds = null;
+  const meshes = {};
+  const sidoShapes = [];
+  const sggGeoms = new Map();
+  const sggShapes = new Map();
+
+  const SIDO_SHORT = {
+    '11': '서울', '26': '부산', '27': '대구', '28': '인천', '12': '전남광주', '30': '대전',
+    '31': '울산', '36': '세종', '41': '경기', '51': '강원', '43': '충북', '44': '충남',
+    '47': '경북', '48': '경남', '50': '제주', '52': '전북',
+  };
+
+  const ISLANDS = [['울릉도', 130.865, 37.497], ['독도', 131.8686, 37.2411]];
+
+  function projRing(ring) {
+    const out = new Array(ring.length);
+    for (let i = 0; i < ring.length; i++) out[i] = proj(ring[i]);
+    return out;
+  }
+  function polysOf(geom) {
+    if (!geom) return [];
+    if (geom.type === 'Polygon') return [geom.coordinates];
+    if (geom.type === 'MultiPolygon') return geom.coordinates;
+    return [];
+  }
+  function projPolys(geom) { return polysOf(geom).map((poly) => poly.map(projRing)); }
+  function pathFromPolys(polys, path = new Path2D()) {
+    for (const poly of polys) {
+      for (const ring of poly) {
+        for (let i = 0; i < ring.length; i++) (i ? path.lineTo(ring[i][0], ring[i][1]) : path.moveTo(ring[i][0], ring[i][1]));
+        path.closePath();
+      }
+    }
+    return path;
+  }
+  function pathFromLines(mls) {
+    const path = new Path2D();
+    for (const line of mls.coordinates) {
+      for (let i = 0; i < line.length; i++) {
+        const p = proj(line[i]);
+        (i ? path.lineTo(p[0], p[1]) : path.moveTo(p[0], p[1]));
+      }
+    }
+    return path;
+  }
+  function ringArea(r) {
+    let a = 0;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) a += (r[j][0] + r[i][0]) * (r[j][1] - r[i][1]);
+    return a / 2;
+  }
+  function polysArea(polys) {
+    let a = 0;
+    for (const poly of polys) {
+      a += Math.abs(ringArea(poly[0]));
+      for (let h = 1; h < poly.length; h++) a -= Math.abs(ringArea(poly[h]));
+    }
+    return a;
+  }
+  function bboxOf(polys) {
+    const b = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const poly of polys) for (const [x, y] of poly[0]) {
+      if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y;
+      if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
+    }
+    return b;
+  }
+  function inRing(p, r) {
+    let inside = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const xi = r[i][0], yi = r[i][1], xj = r[j][0], yj = r[j][1];
+      if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  function inPoly(p, poly) {
+    if (!inRing(p, poly[0])) return false;
+    for (let h = 1; h < poly.length; h++) if (inRing(p, poly[h])) return false;
+    return true;
+  }
+  function segDist2(p, a, b) {
+    let x = a[0], y = a[1];
+    let dx = b[0] - x, dy = b[1] - y;
+    if (dx || dy) {
+      const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+      if (t > 1) { x = b[0]; y = b[1]; } else if (t > 0) { x += dx * t; y += dy * t; }
+    }
+    dx = p[0] - x; dy = p[1] - y;
+    return dx * dx + dy * dy;
+  }
+  function edgeDist(p, poly) {
+    let m = Infinity;
+    for (const ring of poly) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const d = segDist2(p, ring[i], ring[j]);
+      if (d < m) m = d;
+    }
+    return Math.sqrt(m);
+  }
+  // A small pole-of-inaccessibility search, so labels sit inside odd-shaped areas.
+  function labelPoint(polys) {
+    let best = polys[0], bestArea = -1;
+    for (const poly of polys) {
+      const a = Math.abs(ringArea(poly[0]));
+      if (a > bestArea) { bestArea = a; best = poly; }
+    }
+    const b = bboxOf([best]);
+    let cell = Math.max(b[2] - b[0], b[3] - b[1]) / 10 || 0.01;
+    let pt = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2];
+    let dist = inPoly(pt, best) ? edgeDist(pt, best) : -1;
+    let x0 = b[0], y0 = b[1], x1 = b[2], y1 = b[3];
+    for (let iter = 0; iter < 3; iter++) {
+      for (let x = x0 + cell / 2; x < x1; x += cell) {
+        for (let y = y0 + cell / 2; y < y1; y += cell) {
+          const p = [x, y];
+          if (!inPoly(p, best)) continue;
+          const d = edgeDist(p, best);
+          if (d > dist) { dist = d; pt = p; }
+        }
+      }
+      x0 = pt[0] - cell; x1 = pt[0] + cell; y0 = pt[1] - cell; y1 = pt[1] + cell;
+      cell /= 4;
+    }
+    return pt;
+  }
+
+  function locate(p) {
+    for (const f of feats) {
+      const b = f.b;
+      if (p[0] < b[0] || p[0] > b[2] || p[1] < b[1] || p[1] > b[3]) continue;
+      for (const poly of f.polys) if (inPoly(p, poly)) return f;
+    }
+    return null;
+  }
+  function gauss() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function pickWeighted(list) {
+    let total = 0;
+    for (const f of list) total += f.area;
+    let r = Math.random() * total;
+    for (const f of list) { r -= f.area; if (r <= 0) return f; }
+    return list[list.length - 1];
+  }
+  function randomPointIn(f) {
+    const b = f.b;
+    for (let i = 0; i < 400; i++) {
+      const p = [lerp(b[0], b[2], Math.random()), lerp(b[1], b[3], Math.random())];
+      if (f.polys.some((poly) => inPoly(p, poly))) return p;
+    }
+    return f.lp || (f.lp = labelPoint(f.polys));
+  }
+  // The stone lands somewhere around the aim point; the sea and the north are off limits.
+  function pickLanding(aim, sigma) {
+    for (let i = 0; i < 160; i++) {
+      const s = sigma * (1 + i * 0.03);
+      const p = [aim[0] + gauss() * s, aim[1] + gauss() * s];
+      const f = locate(p);
+      if (f) return { p, f };
+    }
+    const near = feats.filter((f) => Math.hypot((f.b[0] + f.b[2]) / 2 - aim[0], (f.b[1] + f.b[3]) / 2 - aim[1]) < 160);
+    const f = pickWeighted(near.length ? near : feats);
+    return { p: randomPointIn(f), f };
+  }
+
+  function sggShape(code) {
+    if (!sggShapes.has(code)) {
+      const polys = projPolys(topojson.merge(topo, sggGeoms.get(code) || []));
+      sggShapes.set(code, { code, polys, b: bboxOf(polys), area: polysArea(polys), lp: null });
+    }
+    return sggShapes.get(code);
+  }
+  function sggLabel(code) {
+    const name = (topo.meta && topo.meta.sgg[code]) || '';
+    return name.replace(/^(.+?시)(.+?구)$/, '$1 $2');
+  }
+  function sidoName(code) { return (topo.meta && topo.meta.sido[code]) || ''; }
+
+  function buildGeometry(data) {
+    topo = data;
+    proj = d3.geoTransverseMercator().rotate([-127.5, -38]).scale(6371.0088).translate([0, 0]);
+    const obj = topo.objects.emd;
+
+    feats = topojson.feature(topo, obj).features.map((f) => {
+      const polys = projPolys(f.geometry);
+      const p = f.properties;
+      return { n: p.n, g: p.g, c: p.c, sido: p.g.slice(0, 2), polys, b: bboxOf(polys), area: polysArea(polys), path: pathFromPolys(polys), lp: null };
+    });
+
+    const land = projPolys(topojson.merge(topo, obj.geometries));
+    landPath = pathFromPolys(land);
+    landBounds = bboxOf(land);
+
+    neighborPath = new Path2D();
+    for (const f of topojson.feature(topo, topo.objects.neighbors).features) pathFromPolys(projPolys(f.geometry), neighborPath);
+
+    const sidoOf = (x) => x.properties.g.slice(0, 2);
+    meshes.coast = pathFromLines(topojson.mesh(topo, obj, (a, b) => a === b));
+    meshes.sido = pathFromLines(topojson.mesh(topo, obj, (a, b) => a !== b && sidoOf(a) !== sidoOf(b)));
+    meshes.sgg = pathFromLines(topojson.mesh(topo, obj, (a, b) => a !== b && sidoOf(a) === sidoOf(b) && a.properties.g !== b.properties.g));
+    meshes.emd = pathFromLines(topojson.mesh(topo, obj, (a, b) => a !== b && a.properties.g === b.properties.g));
+
+    const bySido = new Map();
+    for (const g of obj.geometries) {
+      const code = g.properties.g;
+      if (!sggGeoms.has(code)) sggGeoms.set(code, []);
+      sggGeoms.get(code).push(g);
+      const s = code.slice(0, 2);
+      if (!bySido.has(s)) bySido.set(s, []);
+      bySido.get(s).push(g);
+    }
+    for (const [code, geoms] of bySido) {
+      const polys = projPolys(topojson.merge(topo, geoms));
+      sidoShapes.push({ code, polys, b: bboxOf(polys), area: polysArea(polys), lp: null });
+    }
+    sidoShapes.sort((a, b) => b.area - a.area);
+
+    S.hitPts = S.hits.map((h) => proj([h.lng, h.lat]));
+  }
+
+  // ---------- layout ----------
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    for (const k of ['sea', 'sea-halo', 'land', 'neighbor', 'ink', 'ink-soft', 'line', 'hit', 'hit-ink', 'accent', 'stone', 'wood', 'wood-dark', 'band', 'panel']) {
+      S.colors[k] = cs.getPropertyValue('--' + k).trim();
+    }
+  }
+
+  function fit(b, rect, maxK = Infinity) {
+    const k = Math.min((rect.r - rect.l) / (b[2] - b[0]), (rect.b - rect.t) / (b[3] - b[1]), maxK);
+    const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+    return { k, x: (rect.l + rect.r) / 2 - cx * k, y: (rect.t + rect.b) / 2 - cy * k };
+  }
+  const toScreen = (p, v = S.view) => [p[0] * v.k + v.x, p[1] * v.k + v.y];
+  const toWorld = (s, v = S.view) => [(s[0] - v.x) / v.k, (s[1] - v.y) / v.k];
+
+  function layout() {
+    S.W = window.innerWidth;
+    S.H = window.innerHeight;
+    S.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    for (const cv of [mapCanvas, fxCanvas]) {
+      cv.width = Math.round(S.W * S.dpr);
+      cv.height = Math.round(S.H * S.dpr);
+      cv.style.width = S.W + 'px';
+      cv.style.height = S.H + 'px';
+    }
+    const barBottom = $('bar').getBoundingClientRect().bottom;
+    const dockTop = $('dock').getBoundingClientRect().top;
+    const forkH = clamp(S.H * 0.11, 62, 96);
+    const baseY = dockTop - 4;
+    const forkY = baseY - forkH;
+    S.sling = { x: S.W / 2, baseY, forkY, forkH, forkW: forkH * 0.66, restY: forkY + 6, maxPull: clamp(S.H * 0.15, 80, 140) };
+    S.headerBottom = barBottom;
+    S.homeRect = { l: 16, t: barBottom + 8, r: S.W - 16, b: forkY - 28 };
+    if (landBounds) {
+      S.home = fit(landBounds, S.homeRect);
+      const northY = toScreen([0, landBounds[1]], S.home)[1];
+      S.maxRange = Math.max(80, (S.sling.restY - northY) * 1.03);
+    }
+  }
+
+  function sheetRect() {
+    const sheet = $('sheet');
+    const wide = window.matchMedia('(min-width: 760px)').matches;
+    const top = S.headerBottom + 8;
+    if (wide) return { l: 16 + sheet.offsetWidth + 24, t: top, r: S.W - 24, b: S.H - 24 };
+    return { l: 16, t: top, r: S.W - 16, b: S.H - sheet.offsetHeight - 16 };
+  }
+  function resultView(hit) {
+    const b = hit.f.b;
+    const w = b[2] - b[0], h = b[3] - b[1];
+    const pad = Math.max(w, h) * 0.55;
+    const ctxB = [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
+    const minHalf = 2.4;
+    const cx = (ctxB[0] + ctxB[2]) / 2, cy = (ctxB[1] + ctxB[3]) / 2;
+    if (ctxB[2] - ctxB[0] < minHalf * 2) { ctxB[0] = cx - minHalf; ctxB[2] = cx + minHalf; }
+    if (ctxB[3] - ctxB[1] < minHalf * 2) { ctxB[1] = cy - minHalf; ctxB[3] = cy + minHalf; }
+    return fit(ctxB, sheetRect(), 220);
+  }
+
+  // ---------- frame loop ----------
+  let rafId = 0;
+  let mapDirty = true;
+  let fxDirty = true;
+  const anims = new Set();
+
+  function requestFrame() { if (!rafId) rafId = requestAnimationFrame(frame); }
+  function invalidate(map = true, fx = true) { mapDirty = mapDirty || map; fxDirty = fxDirty || fx; requestFrame(); }
+  function frame(now) {
+    rafId = 0;
+    for (const a of Array.from(anims)) if (a.step(now) === false) anims.delete(a);
+    if (S.ripples.length) fxDirty = true;
+    if (mapDirty) { mapDirty = false; drawMap(); }
+    if (fxDirty) { fxDirty = false; drawFx(now); }
+    if (anims.size || S.ripples.length) requestFrame();
+  }
+  function animate(duration, step, done) {
+    const a = {
+      t0: null,
+      step(now) {
+        if (a.t0 == null) a.t0 = now;
+        const t = duration <= 0 ? 1 : Math.min(1, (now - a.t0) / duration);
+        step(t, now - a.t0);
+        if (t >= 1) { if (done) done(); return false; }
+        return true;
+      },
+    };
+    anims.add(a);
+    requestFrame();
+    return a;
+  }
+
+  function setMode(mode) {
+    S.mode = mode;
+    document.body.dataset.mode = mode;
+    $('btn-random').disabled = mode !== 'ready';
+    const hint = $('hint');
+    if (mode === 'ready') hint.textContent = '고무줄을 아래로 당겼다가 놓으세요';
+    if (mode === 'flying') hint.textContent = '날아가는 중';
+  }
+
+  // ---------- drawing ----------
+  function drawMap() {
+    const ctx = mctx;
+    const { W, H, dpr } = S;
+    const { k, x, y } = S.view;
+    const c = S.colors;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = c.sea;
+    ctx.fillRect(0, 0, W, H);
+    if (!landPath) return;
+
+    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * x, dpr * y);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    // Coastal shading in the style of a school atlas: a pale band that hugs every shore.
+    ctx.strokeStyle = c['sea-halo'];
+    for (const [w, a] of [[22, 0.3], [12, 0.5], [5, 0.9]]) {
+      ctx.globalAlpha = a;
+      ctx.lineWidth = w / k;
+      ctx.stroke(meshes.coast);
+      ctx.stroke(neighborPath);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = c.neighbor;
+    ctx.fill(neighborPath);
+    ctx.fillStyle = c.land;
+    ctx.fill(landPath);
+
+    const cur = S.current;
+    if (cur) {
+      ctx.fillStyle = c.hit;
+      ctx.fill(cur.f.path);
+    }
+
+    // Boundary symbols follow the Korean topographic map convention:
+    // 시도 = 1점쇄선, 시군구 = 2점쇄선, 읍면동 = 파선.
+    const emdAlpha = clamp((k - 2.5) / 5, 0, 1);
+    if (emdAlpha > 0) {
+      ctx.globalAlpha = emdAlpha * 0.75;
+      ctx.strokeStyle = c.line;
+      ctx.lineWidth = 0.9 / k;
+      ctx.setLineDash([3.2 / k, 2.6 / k]);
+      ctx.stroke(meshes.emd);
+    }
+    ctx.strokeStyle = c.line;
+    if (k < 1.4) {
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 0.6 / k;
+      ctx.setLineDash([]);
+    } else {
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1.1 / k;
+      ctx.setLineDash([7 / k, 2.4 / k, 1.2 / k, 2.4 / k, 1.2 / k, 2.4 / k]);
+    }
+    ctx.stroke(meshes.sgg);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = c.ink;
+    ctx.lineWidth = (k < 1.4 ? 1.1 : 1.7) / k;
+    ctx.setLineDash([10 / k, 3 / k, 1.8 / k, 3 / k]);
+    ctx.stroke(meshes.sido);
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 0.9 / k;
+    ctx.stroke(meshes.coast);
+    ctx.globalAlpha = 1;
+
+    if (cur) {
+      ctx.strokeStyle = c.ink;
+      ctx.lineWidth = 2.4 / k;
+      ctx.stroke(cur.f.path);
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!S.animating) drawLabels(ctx);
+    drawHits(ctx);
+  }
+
+  function drawLabels(ctx) {
+    const { k } = S.view;
+    const c = S.colors;
+    const boxes = [];
+    const blocked = [[0, 0, S.W, S.headerBottom]];
+    if (S.mode === 'result' || S.mode === 'impact') {
+      const r = $('sheet').getBoundingClientRect();
+      blocked.push([r.left, r.top, r.right, r.bottom]);
+    } else {
+      blocked.push([S.sling.x - S.sling.forkW, S.sling.forkY - 10, S.sling.x + S.sling.forkW, S.H]);
+    }
+    const overlaps = (a, b) => !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+
+    const place = (text, wp, size, weight, fill, halo, force, family) => {
+      const [sx, sy] = toScreen(wp);
+      ctx.font = `${weight} ${size}px ${family || '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif'}`;
+      const w = ctx.measureText(text).width;
+      const box = [sx - w / 2 - 3, sy - size / 2 - 3, sx + w / 2 + 3, sy + size / 2 + 3];
+      if (box[2] < 0 || box[0] > S.W || box[3] < 0 || box[1] > S.H) return false;
+      if (!force && (boxes.some((b) => overlaps(box, b)) || blocked.some((b) => overlaps(box, b)))) return false;
+      boxes.push(box);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = halo;
+      ctx.strokeText(text, sx, sy);
+      ctx.fillStyle = fill;
+      ctx.fillText(text, sx, sy);
+      return true;
+    };
+
+    const cur = S.current;
+    if (cur && (S.mode === 'result' || S.mode === 'impact')) {
+      const f = cur.f;
+      const lp = f.lp || (f.lp = labelPoint(f.polys));
+      // Keep the name clear of the pin when the pole sits right on it.
+      const [px, py] = toScreen(cur.p);
+      const [lx, ly] = toScreen(lp);
+      const wp = Math.hypot(px - lx, py - ly) < 48 ? toWorld([px, py + (py - S.headerBottom < 60 ? 36 : -36)]) : lp;
+      place(f.n, wp, 17, 600, c['hit-ink'], c.hit, true);
+    }
+
+    const vw = toWorld([0, 0]);
+    const ve = toWorld([S.W, S.H]);
+    const inView = (b) => !(b[2] < vw[0] || b[0] > ve[0] || b[3] < vw[1] || b[1] > ve[1]);
+
+    if (k < 1.5) {
+      // Small islands vanish at this scale, so name them the way an atlas does.
+      for (const [name, lng, lat] of ISLANDS) {
+        const wp = proj([lng, lat]);
+        const [sx, sy] = toScreen(wp);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+        ctx.fillStyle = c.ink;
+        ctx.fill();
+        place(name, toWorld([sx, sy - 12]), 11, 500, c.ink, c.sea, false);
+      }
+      for (const s of sidoShapes) {
+        if (!inView(s.b)) continue;
+        const lp = s.lp || (s.lp = labelPoint(s.polys));
+        place(SIDO_SHORT[s.code] || sidoName(s.code), lp, 13, 600, c.ink, c.land, false);
+      }
+    } else if (k < 7) {
+      const cands = [];
+      for (const [code] of sggGeoms) {
+        const sh = sggShape(code);
+        if (!inView(sh.b)) continue;
+        if ((sh.b[2] - sh.b[0]) * k < 36) continue;
+        cands.push(sh);
+      }
+      cands.sort((a, b) => b.area - a.area);
+      for (const sh of cands) {
+        const lp = sh.lp || (sh.lp = labelPoint(sh.polys));
+        place(sggLabel(sh.code), lp, 13, 600, c.ink, c.land, false);
+      }
+    } else {
+      const cands = [];
+      for (const f of feats) {
+        if (!inView(f.b)) continue;
+        if ((f.b[2] - f.b[0]) * k < 34 || (f.b[3] - f.b[1]) * k < 18) continue;
+        if (cur && f === cur.f) continue;
+        cands.push(f);
+      }
+      cands.sort((a, b) => b.area - a.area);
+      ctx.font = '500 12px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+      for (const f of cands) {
+        if ((f.b[2] - f.b[0]) * k < ctx.measureText(f.n).width + 8) continue;
+        const lp = f.lp || (f.lp = labelPoint(f.polys));
+        place(f.n, lp, 12, 500, c['ink-soft'], c.land, false);
+      }
+    }
+  }
+
+  function drawHits(ctx) {
+    const c = S.colors;
+    const cur = S.current;
+    if (S.hitPts) {
+      for (let i = 0; i < S.hitPts.length; i++) {
+        if (cur && i === S.hitPts.length - 1 && S.mode !== 'ready' && S.mode !== 'aiming') continue;
+        const [sx, sy] = toScreen(S.hitPts[i]);
+        if (sx < -10 || sy < -10 || sx > S.W + 10 || sy > S.H + 10) continue;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.6, 0, Math.PI * 2);
+        ctx.fillStyle = c.accent;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = c.land;
+        ctx.stroke();
+      }
+    }
+    if (cur && S.mode !== 'ready' && S.mode !== 'aiming') {
+      const [sx, sy] = toScreen(cur.p);
+      // A little crater where the stone went in.
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.strokeStyle = c.ink;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2 + 0.3;
+        const r0 = 10, r1 = 15 + (i % 3) * 3;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+        ctx.lineTo(Math.cos(a + 0.12) * r1, Math.sin(a + 0.12) * r1);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fillStyle = c.panel;
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = c.accent;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = c.accent;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawSlingshot(ctx, pouch, withStone) {
+    const c = S.colors;
+    const { x, baseY, forkY, forkW, forkH } = S.sling;
+    const lt = [x - forkW / 2, forkY];
+    const rt = [x + forkW / 2, forkY];
+    const joinY = forkY + forkH * 0.5;
+
+    const frame = () => {
+      ctx.beginPath();
+      ctx.moveTo(x, baseY);
+      ctx.lineTo(x, joinY);
+      ctx.quadraticCurveTo(x - forkW * 0.08, joinY - forkH * 0.18, lt[0], lt[1]);
+      ctx.moveTo(x, joinY);
+      ctx.quadraticCurveTo(x + forkW * 0.08, joinY - forkH * 0.18, rt[0], rt[1]);
+    };
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // band behind the stone
+    ctx.strokeStyle = c.band;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(rt[0], rt[1]);
+    ctx.lineTo(pouch[0] + 5, pouch[1]);
+    ctx.stroke();
+
+    frame();
+    ctx.strokeStyle = c['wood-dark'];
+    ctx.lineWidth = 13;
+    ctx.stroke();
+    frame();
+    ctx.strokeStyle = c.wood;
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // leather pouch
+    ctx.save();
+    ctx.translate(pouch[0], pouch[1]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = c['wood-dark'];
+    ctx.fill();
+    if (withStone) {
+      ctx.beginPath();
+      ctx.arc(0, -1, 6.5, 0, Math.PI * 2);
+      ctx.fillStyle = c.stone;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = c.ink;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // band in front of the stone
+    ctx.strokeStyle = c.band;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(lt[0], lt[1]);
+    ctx.lineTo(pouch[0] - 5, pouch[1]);
+    ctx.stroke();
+  }
+
+  function aimFromPull(pull) {
+    const len = Math.hypot(pull[0], pull[1]);
+    const power = Math.min(1, len / S.sling.maxPull);
+    const dir = len > 0.001 ? [-pull[0] / len, -pull[1] / len] : [0, -1];
+    const o = [S.sling.x, S.sling.restY];
+    const r = S.maxRange * power;
+    const screen = [o[0] + dir[0] * r, o[1] + dir[1] * r];
+    return { power, screen, world: toWorld(screen), sigmaKm: 20 + 24 * power };
+  }
+
+  function drawFx(now) {
+    const ctx = fctx;
+    const c = S.colors;
+    ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
+    ctx.clearRect(0, 0, S.W, S.H);
+    if (!S.sling || S.mode === 'loading' || S.mode === 'error') return;
+
+    const showSling = S.mode === 'ready' || S.mode === 'aiming' || S.mode === 'flying' || S.mode === 'returning';
+    if (showSling) {
+      const rest = [S.sling.x, S.sling.restY];
+      let pouch = S.pouch || rest;
+      if (S.mode === 'aiming' && S.pull) pouch = [rest[0] + S.pull[0], rest[1] + S.pull[1]];
+
+      if (S.mode === 'aiming' && S.pull) {
+        const aim = aimFromPull(S.pull);
+        if (aim.power >= MIN_POWER) {
+          ctx.save();
+          ctx.strokeStyle = c.accent;
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([1, 8]);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(rest[0], rest[1]);
+          ctx.lineTo(aim.screen[0], aim.screen[1]);
+          ctx.stroke();
+          const r = aim.sigmaKm * S.view.k;
+          ctx.setLineDash([6, 5]);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(aim.screen[0], aim.screen[1], r, 0, Math.PI * 2);
+          ctx.globalAlpha = 0.12;
+          ctx.fillStyle = c.accent;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      drawSlingshot(ctx, pouch, S.mode === 'ready' || S.mode === 'aiming' || S.mode === 'returning');
+    }
+
+    const st = S.stone;
+    if (st) {
+      for (let i = 0; i < st.trail.length; i++) {
+        const [tx, ty] = st.trail[i];
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2 + i * 0.25, 0, Math.PI * 2);
+        ctx.globalAlpha = (i + 1) / st.trail.length * 0.35;
+        ctx.fillStyle = c.ink;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.ellipse(st.gx, st.gy, 7 * (1 - st.lift * 0.35), 3.5 * (1 - st.lift * 0.35), 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(st.sx, st.sy, 6.5 + st.lift * 6, 0, Math.PI * 2);
+      ctx.fillStyle = c.stone;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = c.ink;
+      ctx.stroke();
+    }
+
+    if (S.ripples.length) {
+      S.ripples = S.ripples.filter((r) => now - r.t0 < 900);
+      for (const r of S.ripples) {
+        const [sx, sy] = toScreen(r.p);
+        for (let i = 0; i < 3; i++) {
+          const t = clamp((now - r.t0 - i * 130) / 650, 0, 1);
+          if (t <= 0 || t >= 1) continue;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 8 + t * 46, 0, Math.PI * 2);
+          ctx.globalAlpha = (1 - t) * 0.9;
+          ctx.lineWidth = 3 * (1 - t) + 1;
+          ctx.strokeStyle = c.accent;
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- shooting ----------
+  const MIN_POWER = 0.16;
+
+  function recoil(fromPull, done) {
+    const rest = [S.sling.x, S.sling.restY];
+    const dur = reduceMotion.matches ? 0 : 420;
+    animate(dur, (t, ms) => {
+      const amp = Math.exp(-ms / 95) * Math.cos(ms / 24);
+      S.pouch = t >= 1 ? rest : [rest[0] + fromPull[0] * amp, rest[1] + fromPull[1] * amp];
+      fxDirty = true;
+    }, () => { S.pouch = null; fxDirty = true; if (done) done(); });
+  }
+
+  function fire(aim, pull) {
+    const landing = pickLanding(aim.world, aim.sigmaKm);
+    S.shots += 1;
+    store.set('ks.shots', S.shots);
+    $('shot-count').textContent = String(S.shots);
+    setMode('flying');
+    recoil(pull);
+
+    const from = [S.sling.x + pull[0] * 0.2, S.sling.restY + pull[1] * 0.2];
+    const to = toScreen(landing.p);
+    const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    const dur = reduceMotion.matches ? 0 : clamp(480 + dist * 1.05, 620, 1450);
+    const peak = clamp(dist * 0.32, 40, 200);
+    S.stone = { sx: from[0], sy: from[1], gx: from[0], gy: from[1], lift: 0, trail: [] };
+    animate(dur, (t) => {
+      const e = 1 - Math.pow(1 - t, 1.6);
+      const gx = lerp(from[0], to[0], e);
+      const gy = lerp(from[1], to[1], e);
+      const h = 4 * e * (1 - e);
+      const st = S.stone;
+      st.trail.push([st.sx, st.sy]);
+      if (st.trail.length > 9) st.trail.shift();
+      st.gx = gx; st.gy = gy; st.lift = h;
+      st.sx = gx; st.sy = gy - h * peak;
+      fxDirty = true;
+    }, () => {
+      S.stone = null;
+      land(landing);
+    });
+  }
+
+  function land(landing) {
+    const f = landing.f;
+    const [lng, lat] = proj.invert(landing.p);
+    const sidoCode = f.sido;
+    const sgg = f.g === '36110' ? '' : sggLabel(f.g);
+    const upper = [sidoName(sidoCode), sgg].filter(Boolean).join(' ');
+    const shortPlace = [f.g === '36110' ? '세종' : sgg, f.n].filter(Boolean).join(' ');
+    S.current = {
+      p: landing.p, f, lng, lat, upper,
+      dest: { lat: lat.toFixed(6), lng: lng.toFixed(6), name: shortPlace },
+    };
+    S.hits.push({ lng: +lng.toFixed(5), lat: +lat.toFixed(5) });
+    if (S.hits.length > 40) S.hits.shift();
+    store.set('ks.hits', S.hits);
+    S.hitPts = S.hits.map((h) => proj([h.lng, h.lat]));
+
+    S.ripples.push({ p: landing.p, t0: performance.now() });
+    try { if (navigator.vibrate) navigator.vibrate(35); } catch (e) { /* not supported */ }
+    setMode('impact');
+    invalidate();
+    fillSheet();
+    setTimeout(zoomToResult, reduceMotion.matches ? 0 : 260);
+  }
+
+  function flyTo(target, done, minDur = 700) {
+    const toC = (v) => [(S.W / 2 - v.x) / v.k, (S.H / 2 - v.y) / v.k, S.W / v.k];
+    const I = d3.interpolateZoom(toC(S.view), toC(target));
+    const dur = reduceMotion.matches ? 0 : clamp(I.duration * 0.9, minDur, 2100);
+    S.animating = true;
+    animate(dur, (t) => {
+      const [cx, cy, w] = I(easeInOut(t));
+      const k = S.W / w;
+      S.view = { k, x: S.W / 2 - cx * k, y: S.H / 2 - cy * k };
+      mapDirty = true;
+      fxDirty = true;
+    }, () => {
+      S.view = target;
+      S.animating = false;
+      invalidate();
+      if (done) done();
+    });
+  }
+
+  function zoomToResult() {
+    const sheet = $('sheet');
+    sheet.inert = false;
+    flyTo(resultView(S.current), () => {
+      setMode('result');
+      invalidate();
+    }, 900);
+    setTimeout(() => { sheet.dataset.state = 'open'; }, reduceMotion.matches ? 0 : 420);
+  }
+
+  function goHome() {
+    const sheet = $('sheet');
+    sheet.dataset.state = 'closed';
+    sheet.inert = true;
+    $('r-note').textContent = '';
+    setMode('returning');
+    flyTo(S.home, () => {
+      S.current = null;
+      setMode('ready');
+      invalidate();
+    }, 650);
+  }
+
+  function randomShot() {
+    if (S.mode !== 'ready') return;
+    // Aim straight at a random spot, weighted by area so every square kilometre is equally likely.
+    const f = pickWeighted(feats);
+    const target = toScreen(randomPointIn(f));
+    const o = [S.sling.x, S.sling.restY];
+    const dx = target[0] - o[0], dy = target[1] - o[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const power = clamp(len / S.maxRange, MIN_POWER, 1);
+    const pull = [-dx / len * power * S.sling.maxPull, -dy / len * power * S.sling.maxPull];
+    setMode('aiming');
+    const dur = reduceMotion.matches ? 0 : 380;
+    animate(dur, (t) => {
+      const e = easeInOut(t);
+      S.pull = [pull[0] * e, pull[1] * e];
+      fxDirty = true;
+    }, () => {
+      S.pull = null;
+      const aim = aimFromPull(pull);
+      aim.world = toWorld(target);
+      aim.sigmaKm = 0.01;
+      fire(aim, pull);
+    });
+  }
+
+  // ---------- result sheet ----------
+  const APPS = {
+    kakao: {
+      label: '카카오맵',
+      pkg: 'net.daum.android.map',
+      scheme: (d) => `kakaomap://route?ep=${d.lat},${d.lng}&by=CAR`,
+      web: (d) => `https://map.kakao.com/link/to/${encodeURIComponent(d.name)},${d.lat},${d.lng}`,
+    },
+    naver: {
+      label: '네이버 지도',
+      pkg: 'com.nhn.android.nmap',
+      scheme: (d) => `nmap://navigation?dlat=${d.lat}&dlng=${d.lng}&dname=${encodeURIComponent(d.name)}&appname=${encodeURIComponent(APP_NAME)}`,
+      web: (d) => {
+        const mx = (d.lng * 20037508.34) / 180;
+        const my = ((Math.log(Math.tan(((90 + +d.lat) * Math.PI) / 360)) / (Math.PI / 180)) * 20037508.34) / 180;
+        return `https://map.naver.com/p/directions/-/${mx.toFixed(4)},${my.toFixed(4)},${encodeURIComponent(d.name)},,ADDRESS_POI/-/car`;
+      },
+    },
+    tmap: {
+      label: 'T맵',
+      pkg: 'com.skt.tmap.ku',
+      scheme: (d) => {
+        const n = encodeURIComponent(d.name);
+        return `tmap://route?goalname=${n}&goalx=${d.lng}&goaly=${d.lat}&rGoName=${n}&rGoX=${d.lng}&rGoY=${d.lat}`;
+      },
+      web: () => (IS_IOS ? 'https://apps.apple.com/kr/app/id431589174' : 'https://play.google.com/store/apps/details?id=com.skt.tmap.ku'),
+    },
+  };
+
+  function fillSheet() {
+    const cur = S.current;
+    $('r-upper').textContent = cur.upper;
+    $('r-emd-name').textContent = cur.f.n;
+    $('r-coord').textContent = `${(+cur.dest.lat).toFixed(5)}, ${(+cur.dest.lng).toFixed(5)}`;
+    $('r-code').textContent = cur.f.c;
+    $('r-note').textContent = '';
+    $('sr-announce').textContent = `${cur.upper} ${cur.f.n}에 맞았어요.`;
+    updateGo();
+  }
+
+  function updateGo() {
+    for (const b of document.querySelectorAll('.apps button')) b.setAttribute('aria-checked', String(b.dataset.app === S.app));
+    const d = S.current && S.current.dest;
+    if (!d) return;
+    const app = APPS[S.app];
+    const go = $('btn-go');
+    go.href = IN_FRAME && S.app === 'tmap' ? app.scheme(d) : app.web(d);
+    go.setAttribute('aria-label', `${app.label}로 ${d.name}까지 길안내`);
+    if (IN_FRAME) {
+      $('r-note').textContent = S.app === 'tmap'
+        ? 'T맵은 앱이 깔린 휴대폰에서만 열려요.'
+        : '미리보기 화면에서는 웹 지도로 열려요. 휴대폰 브라우저에서 열면 앱이 바로 실행돼요.';
+    }
+  }
+
+  function launch(app, d) {
+    const scheme = app.scheme(d);
+    if (IS_ANDROID) {
+      const i = scheme.indexOf('://');
+      const proto = scheme.slice(0, i);
+      const rest = scheme.slice(i + 3);
+      const fallback = S.app === 'tmap' ? '' : `S.browser_fallback_url=${encodeURIComponent(app.web(d))};`;
+      window.location.href = `intent://${rest}#Intent;scheme=${proto};package=${app.pkg};${fallback}end`;
+      return;
+    }
+    // iOS: try the app, and fall back to the web map (or the App Store) if nothing took over.
+    let left = false;
+    const mark = () => { left = true; };
+    document.addEventListener('visibilitychange', mark, { once: true });
+    window.addEventListener('pagehide', mark, { once: true });
+    window.location.href = scheme;
+    setTimeout(() => {
+      if (!left && !document.hidden) window.location.href = app.web(d);
+    }, 1800);
+  }
+
+  $('btn-go').addEventListener('click', (e) => {
+    const d = S.current && S.current.dest;
+    if (!d) { e.preventDefault(); return; }
+    if (IN_FRAME || (!IS_IOS && !IS_ANDROID)) return; // the plain link opens the web map in a new tab
+    e.preventDefault();
+    launch(APPS[S.app], d);
+  });
+
+  for (const b of document.querySelectorAll('.apps button')) {
+    b.addEventListener('click', () => {
+      S.app = b.dataset.app;
+      store.set('ks.app', S.app);
+      updateGo();
+    });
+  }
+  document.querySelector('.apps').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const order = ['kakao', 'naver', 'tmap'];
+    const i = order.indexOf(S.app) + (e.key === 'ArrowRight' ? 1 : -1);
+    S.app = order[(i + order.length) % order.length];
+    store.set('ks.app', S.app);
+    updateGo();
+    $('app-' + S.app).focus();
+    e.preventDefault();
+  });
+
+  $('btn-again').addEventListener('click', goHome);
+  $('btn-random').addEventListener('click', randomShot);
+
+  $('btn-copy').addEventListener('click', () => {
+    const cur = S.current;
+    if (!cur) return;
+    const text = `${cur.upper} ${cur.f.n} (${cur.dest.lat}, ${cur.dest.lng})`;
+    const note = $('r-note');
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      ta.remove();
+      note.textContent = ok ? '주소를 복사했어요.' : `복사가 막혀 있어요. 직접 옮겨 적어 주세요: ${text}`;
+    };
+    try {
+      navigator.clipboard.writeText(text).then(() => { note.textContent = '주소를 복사했어요.'; }, fallback);
+    } catch (e) {
+      fallback();
+    }
+  });
+
+  // ---------- input ----------
+  const pointers = new Map();
+  let aimPointer = null;
+
+  fxCanvas.addEventListener('pointerdown', (e) => {
+    if (S.mode === 'ready') {
+      aimPointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      S.pull = [0, 0];
+      setMode('aiming');
+      fxCanvas.setPointerCapture(e.pointerId);
+      invalidate(false, true);
+      e.preventDefault();
+    } else if (S.mode === 'result') {
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      fxCanvas.setPointerCapture(e.pointerId);
+    }
+  });
+
+  fxCanvas.addEventListener('pointermove', (e) => {
+    if (S.mode === 'aiming' && aimPointer && e.pointerId === aimPointer.id) {
+      let dx = e.clientX - aimPointer.x;
+      let dy = e.clientY - aimPointer.y;
+      const len = Math.hypot(dx, dy);
+      if (len > S.sling.maxPull) { dx *= S.sling.maxPull / len; dy *= S.sling.maxPull / len; }
+      S.pull = [dx, dy];
+      $('hint').textContent = aimFromPull(S.pull).power < MIN_POWER ? '조금 더 당기세요' : '놓으면 발사돼요';
+      invalidate(false, true);
+      return;
+    }
+    if (S.mode === 'result' && pointers.has(e.pointerId)) {
+      const prev = pointers.get(e.pointerId);
+      const next = [e.clientX, e.clientY];
+      if (pointers.size === 1) {
+        S.view = { k: S.view.k, x: S.view.x + next[0] - prev[0], y: S.view.y + next[1] - prev[1] };
+      } else {
+        const others = Array.from(pointers.entries()).filter(([id]) => id !== e.pointerId).map(([, p]) => p);
+        const o = others[0];
+        const d0 = Math.hypot(prev[0] - o[0], prev[1] - o[1]) || 1;
+        const d1 = Math.hypot(next[0] - o[0], next[1] - o[1]) || 1;
+        const c0 = [(prev[0] + o[0]) / 2, (prev[1] + o[1]) / 2];
+        const c1 = [(next[0] + o[0]) / 2, (next[1] + o[1]) / 2];
+        S.view = { k: S.view.k, x: S.view.x + c1[0] - c0[0], y: S.view.y + c1[1] - c0[1] };
+        zoomAt(c1, d1 / d0);
+      }
+      pointers.set(e.pointerId, next);
+      invalidate();
+    }
+  });
+
+  function endPointer(e) {
+    if (S.mode === 'aiming' && aimPointer && e.pointerId === aimPointer.id) {
+      aimPointer = null;
+      const pull = S.pull || [0, 0];
+      S.pull = null;
+      const aim = aimFromPull(pull);
+      if (e.type === 'pointercancel' || aim.power < MIN_POWER) {
+        setMode('ready');
+        if (aim.power > 0.02) $('hint').textContent = '조금 더 세게 당겨야 날아가요';
+        recoil(pull);
+        return;
+      }
+      fire(aim, pull);
+      return;
+    }
+    pointers.delete(e.pointerId);
+  }
+  fxCanvas.addEventListener('pointerup', endPointer);
+  fxCanvas.addEventListener('pointercancel', endPointer);
+
+  function zoomAt(s, factor) {
+    const kMin = S.home ? S.home.k * 0.8 : 0.1;
+    const k = clamp(S.view.k * factor, kMin, 400);
+    const w = toWorld(s);
+    S.view = { k, x: s[0] - w[0] * k, y: s[1] - w[1] * k };
+  }
+  fxCanvas.addEventListener('wheel', (e) => {
+    if (S.mode !== 'result') return;
+    e.preventDefault();
+    zoomAt([e.clientX, e.clientY], Math.exp(-e.deltaY * 0.0016));
+    invalidate();
+  }, { passive: false });
+
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    const typing = t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'INPUT');
+    if (S.mode === 'ready' && !typing && (e.key === ' ' || e.key === 'Enter')) {
+      e.preventDefault();
+      randomShot();
+    } else if (S.mode === 'result' && e.key === 'Escape') {
+      goHome();
+    }
+  });
+
+  // ---------- boot ----------
+  function onResize() {
+    layout();
+    if (S.mode === 'result' && S.current) S.view = resultView(S.current);
+    else if (S.home) S.view = S.home;
+    invalidate();
+  }
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(onResize, 80);
+  });
+
+  const themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const onTheme = () => { readColors(); invalidate(); };
+  if (themeQuery.addEventListener) themeQuery.addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts) {
+    // Korean web fonts arrive in slices; redraw canvas labels whenever a slice lands.
+    if (document.fonts.ready) document.fonts.ready.then(() => invalidate());
+    if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => invalidate());
+  }
+
+  function fail(message) {
+    setMode('error');
+    $('status').hidden = false;
+    $('status-text').innerHTML = message;
+  }
+
+  async function boot() {
+    document.documentElement.lang = 'ko';
+    setMode('loading');
+    readColors();
+    layout();
+    $('shot-count').textContent = String(S.shots);
+    invalidate();
+    if (!window.d3 || !window.topojson) {
+      fail('지도 도구를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');
+      return;
+    }
+    let data;
+    try {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error(String(res.status));
+      data = await res.json();
+    } catch (err) {
+      fail(location.protocol === 'file:'
+        ? '파일로 직접 열면 지도 데이터를 읽을 수 없어요. 이 폴더에서 <code>npx serve</code>를 실행한 뒤 브라우저로 열어 주세요.'
+        : '지도 데이터를 불러오지 못했어요. 새로고침해 주세요.');
+      return;
+    }
+    buildGeometry(data);
+    layout();
+    S.view = S.home;
+    $('status').hidden = true;
+    setMode('ready');
+    invalidate();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
