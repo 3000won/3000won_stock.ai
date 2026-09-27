@@ -1364,6 +1364,12 @@ button:focus-visible, a:focus-visible {
   });
 
   $('btn-again').addEventListener('click', goHome);
+  // The Android wrapper calls this on the system back button; true means the page handled it.
+  window.ksBack = () => {
+    if (S.mode !== 'result') return false;
+    goHome();
+    return true;
+  };
   $('btn-random').addEventListener('click', randomShot);
 
   $('btn-copy').addEventListener('click', () => {

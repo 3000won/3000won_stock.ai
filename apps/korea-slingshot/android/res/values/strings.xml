@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">전국 새총</string>
+    <string name="no_handler">이 링크를 열 수 있는 앱이 없어요.</string>
+</resources>

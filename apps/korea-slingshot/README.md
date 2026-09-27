@@ -33,10 +33,30 @@ npx serve .
 
 휴대폰에서 쓰려면 GitHub Pages, Netlify 같은 정적 호스팅에 이 폴더를 그대로 올리면 됩니다. 빌드 과정은 없습니다.
 
+## 안드로이드 앱(APK)
+
+`android/`에 웹 앱을 그대로 담은 안드로이드 앱이 있습니다. 지도 데이터와 d3, topojson을 APK 안에 넣었기 때문에 글꼴을 빼면 인터넷 없이도 돌아갑니다(글꼴은 연결돼 있을 때만 받아 오고, 없으면 휴대폰 기본 글꼴을 씁니다).
+
+- 패키지 `app.koreaslingshot`, 최소 Android 7.0(API 24), 타깃 API 34.
+- 앱 안에서 **지도로 안내하기**를 누르면 카카오맵, 네이버 지도, T맵 앱이 바로 열립니다. 앱이 없으면 카카오와 네이버는 웹 지도로, T맵은 Play 스토어로 이어집니다.
+- 뒤로 가기 버튼은 결과 화면에서는 전국 지도로 돌아가고, 전국 지도에서는 앱을 닫습니다.
+- 휴대폰 다크 모드를 따라갑니다.
+
+빌드(Gradle 없이, Ubuntu/Debian 패키지만 사용):
+
+```bash
+sudo apt-get install aapt zipalign apksigner dalvik-exchange android-sdk-platform-23
+apps/korea-slingshot/android/build.sh
+# → apps/korea-slingshot/android/build/korea-slingshot.apk
+```
+
+서명 키는 처음 빌드할 때 `android/signing/`에 만들어지며 git에 올리지 않습니다. 다른 키로 서명한 APK는 기존 앱 위에 덮어 설치할 수 없으니, 그때는 기존 앱을 지우고 설치하세요.
+
 ## 파일
 
 - `index.html`: 앱 전체(HTML, CSS, JS). d3 7.9.0(cdnjs)과 topojson-client 3.1.0(jsDelivr), Google Fonts(Bagel Fat One, IBM Plex Sans KR)를 불러옵니다.
 - `data/korea.topo.json`: 읍면동 경계와 주변국 윤곽(TopoJSON, 약 1.5MB).
+- `android/`: 안드로이드 래퍼(WebView 한 화면, `MainActivity.java`)와 빌드 스크립트, 아이콘.
 
 ## 데이터 출처와 가공
 
