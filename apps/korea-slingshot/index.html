@@ -439,7 +439,8 @@ button:focus-visible, a:focus-visible {
     '47': '경북', '48': '경남', '50': '제주', '52': '전북',
   };
 
-  const ISLANDS = [['울릉도', 130.865, 37.497], ['독도', 131.8686, 37.2411]];
+  // [name, lng, lat, label offset in px]: 독도 sits below its dot so it never collides with 울릉도.
+  const ISLANDS = [['울릉도', 130.865, 37.497, -12], ['독도', 131.8686, 37.2411, 13]];
 
   function projRing(ring) {
     const out = new Array(ring.length);
@@ -876,14 +877,14 @@ button:focus-visible, a:focus-visible {
 
     if (k < 1.5) {
       // Small islands vanish at this scale, so name them the way an atlas does.
-      for (const [name, lng, lat] of ISLANDS) {
+      for (const [name, lng, lat, dy] of ISLANDS) {
         const wp = proj([lng, lat]);
         const [sx, sy] = toScreen(wp);
         ctx.beginPath();
         ctx.arc(sx, sy, 2, 0, Math.PI * 2);
         ctx.fillStyle = c.ink;
         ctx.fill();
-        place(name, toWorld([sx, sy - 12]), 11, 500, c.ink, c.sea, false);
+        place(name, toWorld([sx, sy + dy]), 11, 500, c.ink, c.sea, false);
       }
       for (const s of sidoShapes) {
         if (!inView(s.b)) continue;
@@ -1054,31 +1055,7 @@ button:focus-visible, a:focus-visible {
       let pouch = S.pouch || rest;
       if (S.mode === 'aiming' && S.pull) pouch = [rest[0] + S.pull[0], rest[1] + S.pull[1]];
 
-      if (S.mode === 'aiming' && S.pull) {
-        const aim = aimFromPull(S.pull);
-        if (aim.power >= MIN_POWER) {
-          ctx.save();
-          ctx.strokeStyle = c.accent;
-          ctx.lineWidth = 2.5;
-          ctx.setLineDash([1, 8]);
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(rest[0], rest[1]);
-          ctx.lineTo(aim.screen[0], aim.screen[1]);
-          ctx.stroke();
-          const r = aim.sigmaKm * S.view.k;
-          ctx.setLineDash([6, 5]);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(aim.screen[0], aim.screen[1], r, 0, Math.PI * 2);
-          ctx.globalAlpha = 0.12;
-          ctx.fillStyle = c.accent;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
+      // No aim line or landing circle: only the stretched band hints at the shot.
       drawSlingshot(ctx, pouch, S.mode === 'ready' || S.mode === 'aiming' || S.mode === 'returning');
     }
 
